@@ -2,13 +2,22 @@ using NLsolve, DifferentialEquations, ForwardDiff
 using StaticArrays, AstroEOMs, DiffEqSensitivity
 using LinearAlgebra
 
-function solveCRTBPTrajectoryOptimization(λ0,ics,fcs,tspan,ps)
-    # Solve the boundary value problem with NLsolve
-    sol = nlsolve((F,x) -> shootingFunction!(F,x,ics,fcs,tspan,ps),
-            λ0, autodiff = :forward, show_trace = true, ftol = 1e-8)
+function solveCRTBPTrajectoryOptimization(λ0,ics,fcs,tspan,ps; acceptanceTol = 10.0)
+    # Evaluate shooting function once to test is numerical integration is successful with guess
+    Ft      = zeros(7)
+    retcode = shootingFunction!(Ft,λ0, ics, fcs, tspan, ps)
 
-    # Return nlsolve solution
-    return (sol.zero, converged(sol))
+    if retcode == :Success && maximum(Ft) < acceptanceTol
+        # Solve the boundary value problem with NLsolve
+        sol = nlsolve((F,x) -> shootingFunction!(F,x,ics,fcs,tspan,ps),
+                λ0, autodiff = :forward, show_trace = true, ftol = 1e-8)
+
+        # Return nlsolve solution
+        return (sol.zero, converged(sol))
+    else
+        print("Numerical integration with guess failed. Not attempting to solve!\n")
+        return (zeros(7), false)
+    end
 end
 
 function shootingFunction!(F,λ0,ics,fcs,tspan,ps)
@@ -49,5 +58,6 @@ function shootingFunction!(F,λ0,ics,fcs,tspan,ps)
     # Compute residuals
     @views F[1:6] .= xf[1:6] .- fcs[1:6]
     F[7] = xf[14] - fcs[7]
-    return nothing
+
+    return sol.retcode
 end

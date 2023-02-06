@@ -40,16 +40,18 @@ function main()
     sw          = SwitchingStruct(1.0, 0)
 
     # ===== Generate random guesses until we have success
+    λme         = zeros(7)
     for a in 1:maxAttempts
         # ===== Guess for unknown initial co-states (for minimum energy problem)
         #λ0g = [18.061015041426327,37.62023638562631,-0.12141606546723561,-0.11720442210452124,0.05108452903629872,-0.00011125433108675963,0.15584636103201133]
         λ0g = vcat(randn(6), rand())
 
         # ==== Solve minimum energy problem first
-        λme,flag = solveCRTBPTrajectoryOptimization(λ0g,ics,fcs,tspan,(spaceCraft,crtbpParams,sw))
+        λmet,flag = solveCRTBPTrajectoryOptimization(λ0g,ics,fcs,tspan,(spaceCraft,crtbpParams,sw))
 
         # ==== If successful, break from loop
         if flag == true
+            λme .= λmet
             break
         end
     end
